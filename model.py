@@ -10,7 +10,7 @@ with open('data/driving_log.csv') as csvfile:
     for line in reader:
         samples.append(line)
         
-print('Num samples =', len(samples))
+print('Num supplied samples =', len(samples))
 
 # Load the image files (center/left/right) from disk, and adjust the steering direction for the left and right
 # images, since they will be taught to the model as if they were center images
@@ -47,10 +47,12 @@ for image, direction in zip(images, directions):
     augmented_images.append(flipped_image)
     augmented_directions.append(flipped_direction)  
 
+print('Num final samples =', len(augmented_images))
+
 import numpy as np
 
-X_train = np.array(images)
-y_train = np.array(directions)
+X_train = np.array(augmented_images)
+y_train = np.array(augmented_directions)
 
 ## Split the sample data into training and validation sets
 #from sklearn.model_selection import train_test_split
@@ -124,7 +126,7 @@ model.add(Dense(1))
 
 model.compile(loss='mse', optimizer='adam')
 
-model.fit(X_train, y_train, validation_split=0.2, nb_epoch=10, shuffle=True)
+model.fit(X_train, y_train, validation_split=0.2, nb_epoch=5, shuffle=True)
 #model.fit_generator(train_generator, 
 #    samples_per_epoch=len(train_samples), 
 #    validation_data=validation_generator, 
