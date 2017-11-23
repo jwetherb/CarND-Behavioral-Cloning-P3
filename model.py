@@ -35,7 +35,8 @@ for line in samples:
 print(len(images))
 print(len(directions))
 
-import opencv as cv2
+import cv2
+
 augmented_images = []
 augmented_directions = []
 for image, direction in zip(images, directions):
@@ -46,12 +47,16 @@ for image, direction in zip(images, directions):
     augmented_images.append(flipped_image)
     augmented_directions.append(flipped_direction)  
 
+import numpy as np
+
+X_train = np.array(images)
+y_train = np.array(directions)
+
 ## Split the sample data into training and validation sets
 #from sklearn.model_selection import train_test_split
 #train_samples, validation_samples = train_test_split(samples, test_size=0.2)
 
 # Define a generator to feed sample data in batches, to avoid loading the entire sample set into memory
-import numpy as np
 import sklearn
 def generator(samples, batch_size=32):
     num_samples = len(samples)
@@ -75,47 +80,38 @@ def generator(samples, batch_size=32):
             yield sklearn.utils.shuffle(X_train, y_train)
 
 # Create entry points to compile and train the model using the generator function
-train_generator = generator(train_samples, batch_size=32)
-validation_generator = generator(validation_samples, batch_size=32)
+#train_generator = generator(X_train, batch_size=32)
+#validation_generator = generator(X_valid, batch_size=32)
 
 ch, row, col = 3, 80, 320  # Trimmed image format
 
-#TODO flip the images and train them in reverse
-#image_flipped = np.fliplr(image)
-#measurement_flipped = -measurement
-
-# Use all three cameras
-#with open('data/driving_log.csv', 'r') as f:
-#    reader = csv.reader(f)
-#with open('data/driving_log.csv') as csvfile:
-#    reader = csv.reader(csvfile)
-#    for row in reader:
-for row in samples:
-    steering_center = float(row[3])
-    
-    # create adjusted steering measurements for the side camera images
-    correction = 0.2 # this is a parameter to tune
-    steering_left = steering_center + correction
-    steering_right = steering_center - correction
-
-    # read in images from center, left and right cameras
-    path = "data/IMG" # fill in the path to your training IMG directory
-    img_center = process_image(np.asarray(Image.open(path + row[0])))
-    img_left = process_image(np.asarray(Image.open(path + row[1])))
-    img_right = process_image(np.asarray(Image.open(path + row[2])))
-
-    # add images and angles to data set
-    car_images.extend(img_center, img_left, img_right)
-    steering_angles.extend(steering_center, steering_left, steering_right)
+#for row in samples:
+#    steering_center = float(row[3])
+#    
+#    # create adjusted steering measurements for the side camera images
+#    correction = 0.2 # this is a parameter to tune
+#    steering_left = steering_center + correction
+#    steering_right = steering_center - correction
+#
+#    # read in images from center, left and right cameras
+#    path = "data/IMG" # fill in the path to your training IMG directory
+#    img_center = process_image(np.asarray(Image.open(path + row[0])))
+#    img_left = process_image(np.asarray(Image.open(path + row[1])))
+#    img_right = process_image(np.asarray(Image.open(path + row[2])))
+#
+#    # add images and angles to data set
+#    car_images.extend(img_center, img_left, img_right)
+#    steering_angles.extend(steering_center, steering_left, steering_right)
 
 from keras.models import Sequential
 from keras.layers import Lambda, Flatten, Dense
-from keras.layers.convolutional import Convolution2D
+from keras.layers.convolutional import Convolution2D, Cropping2D
 from keras.layers.pooling import MaxPooling2D
 
 # Define the model
 model = Sequential()
-model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=(ch, row, col)))
+model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=(160, 320, 3)))
+model.add(Cropping2D(cropping=((70,25), (0,0))))
 model.add(Convolution2D(6, 5, 5, activation='relu'))
 model.add(MaxPooling2D())
 model.add(Convolution2D(16, 5, 5, activation='relu'))
@@ -128,10 +124,11 @@ model.add(Dense(1))
 
 model.compile(loss='mse', optimizer='adam')
 
-model.fit_generator(train_generator, 
-    samples_per_epoch=len(train_samples), 
-    validation_data=validation_generator, 
-    nb_val_samples=len(validation_samples), 
-    nb_epoch=3)
+model.fit(X_train, y_train, validation_split=0.2, nb_epoch=10, shuffle=True)
+#model.fit_generator(train_generator, 
+#    samples_per_epoch=len(train_samples), 
+#    validation_data=validation_generator, 
+#    nb_val_samples=len(validation_samples), 
+#    nb_epoch=3)
     
 model.save('model.h5')
