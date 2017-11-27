@@ -1,19 +1,67 @@
 ##############################################################
 # Training pipeline for the CarND Behavioral Cloning project #
 ##############################################################
+import sys
 
-# Load the 'driving_log.csv' file listing sample snapshots and steering data, etc. from the simulator 
+
+EPOCHS=3
+for arg in sys.argv:   
+    if arg.startswith('epochs='):
+        EPOCHS = int(arg[7:])
+
+print('Epochs =',EPOCHS)
+
+
+# Load the 'driving_log.csv' file(s) listing sample snapshots and steering data, etc. from the simulator 
 import csv
 samples = []
-with open('data/driving_log.csv') as csvfile:
-    reader = csv.reader(csvfile)
-    for line in reader:
-        samples.append(line)
+
+if True:
+    with open('data/driving_log.csv') as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            samples.append(line)
+
+if True:
+    with open('../CloneData/provided_data/driving_log.csv') as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            samples.append(line)
+if True:
+    with open('../CloneData/rhondascar/driving_log.csv') as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            samples.append(line)
         
+if True:
+    with open('../CloneData/curve3.good/driving_log.csv') as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            samples.append(line)
+
+if True:
+    with open('../CloneData/curve4.good/driving_log.csv') as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            samples.append(line)
+
+if True:
+    with open('../CloneData/dirt2/driving_log.csv') as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            samples.append(line)
+
+if True:
+    with open('../CloneData/dirt3/driving_log.csv') as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            samples.append(line)
+
 print('Num supplied samples =', len(samples))
 
 ## Split the sample data into training and validation sets. Do this now so we can augment only the training set.
 from sklearn.model_selection import train_test_split
+
 train_samples, valid_samples = train_test_split(samples, test_size=0.2)
 
 # Define a generator to feed sample data in batches, to avoid loading the entire sample set into memory
@@ -69,9 +117,10 @@ def generator(samples, generate_training_data, batch_size=32):
                     images.append(image)
                     angles.append(angle)
 
-                X_train = np.array(images)
-                y_train = np.array(angles)
-                yield sklearn.utils.shuffle(X_train, y_train)
+            X_train = np.array(images)
+            y_train = np.array(angles)
+
+            yield sklearn.utils.shuffle(X_train, y_train)
 
 # Create entry points to compile and train the model using the generator function
 training_generator = generator(train_samples, True)
@@ -85,7 +134,7 @@ from keras.layers.pooling import MaxPooling2D
 # Define the model
 model = Sequential()
 model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=(160, 320, 3)))
-model.add(Cropping2D(cropping=((70,25), (0,0))))
+model.add(Cropping2D(cropping=((65,35), (0,0))))
 model.add(Convolution2D(6, 5, 5, activation='relu'))
 model.add(MaxPooling2D())
 model.add(Convolution2D(16, 5, 5, activation='relu'))
@@ -102,6 +151,6 @@ model.fit_generator(training_generator,
     samples_per_epoch=len(train_samples), 
     validation_data=validation_generator, 
     nb_val_samples=len(valid_samples), 
-    nb_epoch=5)
+    nb_epoch=EPOCHS)
     
-model.save('model.h5')
+model.save('../model.h5')
